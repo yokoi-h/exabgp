@@ -2051,6 +2051,8 @@ class Configuration (object):
 	def _route_aspath (self, scope, tokens):
 		as_seq = []
 		as_set = []
+		as_confed_seq = []
+		as_confed_set = []
 		asn = tokens.pop(0)
 		inset = False
 		try:
@@ -2064,7 +2066,31 @@ class Configuration (object):
 						return False
 					if asn == ',':
 						continue
-					if asn in ('(','['):
+					if asn in ('{'): ##as_set
+						inset = True
+						while True:
+							try:
+								asn = tokens.pop(0)
+							except IndexError:
+								self._error = self._str_route_error
+								if self.debug: raise Exception()  # noqa
+								return False
+							if asn == '}':
+								break
+							as_set.append(self._newASN(asn))
+					if asn in ('['): ##confed_set
+						inset = True
+						while True:
+							try:
+								asn = tokens.pop(0)
+							except IndexError:
+								self._error = self._str_route_error
+								if self.debug: raise Exception()  # noqa
+								return False
+							if asn == ']':
+								break
+							as_confed_set.append(self._newASN(asn))
+					if asn in ('('): ##confed_seq
 						inset = True
 						while True:
 							try:
@@ -2075,7 +2101,10 @@ class Configuration (object):
 								return False
 							if asn == ')':
 								break
-							as_set.append(self._newASN(asn))
+							as_confed_seq.append(self._newASN(asn))
+					if asn == '}':
+						inset = False
+						continue
 					if asn == ')':
 						inset = False
 						continue
@@ -2091,7 +2120,7 @@ class Configuration (object):
 			self._error = self._str_route_error
 			if self.debug: raise Exception()  # noqa
 			return False
-		scope[-1]['announce'][-1].attributes.add(ASPath(as_seq,as_set))
+		scope[-1]['announce'][-1].attributes.add(ASPath(as_seq,as_set,as_confed_seq,as_confed_set))
 		return True
 
 	def _route_med (self, scope, tokens):
